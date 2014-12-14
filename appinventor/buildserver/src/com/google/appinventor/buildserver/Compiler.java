@@ -270,7 +270,8 @@ public final class Compiler {
 
     nativeLibrariesNeeded = Sets.newHashSet();
     for (String componentType : componentTypes) {
-      nativeLibrariesNeeded.addAll(componentNativeLibraries.get(componentType));
+	  if(!componentType.startsWith("WANDDY"))
+        nativeLibrariesNeeded.addAll(componentNativeLibraries.get(componentType));
     }
     System.out.println("Native Libraries needed, n= " + nativeLibrariesNeeded.size());
   }
@@ -295,7 +296,8 @@ public final class Compiler {
 
     assetsNeeded = Sets.newHashSet();
     for (String componentType : componentTypes) {
-      assetsNeeded.addAll(componentAssets.get(componentType));
+	  if(!componentType.startsWith("WANDDY"))
+        assetsNeeded.addAll(componentAssets.get(componentType));
     }
     System.out.println("Component assets needed, n= " + assetsNeeded.size());
   }
@@ -343,8 +345,8 @@ public final class Compiler {
     	ex.printStackTrace();
     }
     // TODO(user): Use com.google.common.xml.XmlWriter
-    try {
-      BufferedWriter out = new BufferedWriter(new FileWriter(manifestFile));
+    try {   
+      BufferedWriter out = new java.io.BufferedWriter(new java.io.OutputStreamWriter(new java.io.FileOutputStream(manifestFile), "UTF-8"));  
       out.write("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
       // TODO(markf) Allow users to set versionCode and versionName attributes.
       // See http://developer.android.com/guide/publishing/publishing.html for
