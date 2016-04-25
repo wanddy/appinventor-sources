@@ -464,7 +464,8 @@ Blockly.TypeBlock.createAutoComplete_ = function(inputText){
         if (xmlString === null) {
           var blockType = blockToCreate.canonicName;
           if (blockType == 'procedures_callnoreturn' || blockType == 'procedures_callreturn') {
-            xmlString = Blockly.Drawer.procedureCallersXMLString(blockType == 'procedures_callreturn');
+            xmlString = Blockly.Drawer.procedureCallersXMLString(blockType == 'procedures_callreturn',
+                blockToCreate.dropDown.value);
           } else {
             xmlString = '<xml><block type="' + blockType + '">';
             if(!goog.object.isEmpty(blockToCreate.mutatorAttributes)) {
@@ -475,8 +476,8 @@ Blockly.TypeBlock.createAutoComplete_ = function(inputText){
         }
         xml = Blockly.Xml.textToDom(xmlString);
         var xmlBlock = xml.firstChild;
-        if (xml.children.length > 1 && goog.dom.getElement(inputText).value === 'make a list')
-          xmlBlock = xml.children[1];
+        if (xml.childNodes.length > 1 && goog.dom.getElement(inputText).value === 'make a list')
+          xmlBlock = xml.childNodes[1];
         block = Blockly.Xml.domToBlock(Blockly.mainWorkspace, xmlBlock);
 
         if (blockToCreate.dropDown.titleName && blockToCreate.dropDown.value){

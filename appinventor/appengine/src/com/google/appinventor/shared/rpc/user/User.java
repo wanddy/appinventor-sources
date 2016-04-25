@@ -26,15 +26,27 @@ public class User implements IsSerializable, UserInfoProvider, Serializable {
   // user introduction link
   private String link;
 
+  // email notification frequency
+  private int emailFrequency;
+
   // whether user has accepted terms of service
   private boolean tosAccepted;
-  
+
   // whether the user has admin priviledges
   private boolean isAdmin;
+
+  // If set, we inform the client side to go into read only mode
+  // NOTE: isReadOnly is *not* enforced on the server. This is because
+  // only privileged users can assert isReadOnly and we assume that they
+  // are sufficiently trustworthy that they will not attempt to abuse the
+  // system by unsetting it on their client to cause mischief
+  private boolean isReadOnly;
 
   // which type the user has
   private int type;
   private String sessionId;        // Used to ensure only one account active at a time
+
+  private String password;      // Hashed password (if using local login system)
 
   public final static String usercachekey = "f682688a-1065-4cda-8515-a8bd70200ac9"; // UUID
   // This UUID is prepended to any key lookup for User objects. Memcache is a common
@@ -45,6 +57,7 @@ public class User implements IsSerializable, UserInfoProvider, Serializable {
 
   public static final int USER = 0;
   public static final int MODERATOR = 1;
+  public static final int DEFAULT_EMAIL_NOTIFICATION_FREQUENCY = 5;
 
   /**
    * Creates a new user data transfer object.
@@ -54,7 +67,7 @@ public class User implements IsSerializable, UserInfoProvider, Serializable {
    * @param tosAccepted TOS accepted?
    * @param sessionId client session Id
    */
-  public User(String id, String email, String name, String link, boolean tosAccepted, boolean isAdmin, int type, String sessionId) {
+  public User(String id, String email, String name, String link, int emailFrequency, boolean tosAccepted, boolean isAdmin, int type, String sessionId) {
     this.id = id;
     this.email = email;
     if (name==null)
@@ -64,6 +77,7 @@ public class User implements IsSerializable, UserInfoProvider, Serializable {
     this.tosAccepted = tosAccepted;
     this.isAdmin = isAdmin;
     this.link = link;
+    this.emailFrequency = emailFrequency;
     this.type = type;
     this.sessionId = sessionId;
   }
@@ -85,6 +99,14 @@ public class User implements IsSerializable, UserInfoProvider, Serializable {
     return id;
   }
 
+  /*
+   * Sets the userId. This is needed in the case where the stored
+   * id in userData is different from what Google is now providing.
+   */
+  public void setUserId(String id) {
+    this.id = id;
+  }
+
   /**
    * Returns the user's email address.
    *
@@ -100,6 +122,25 @@ public class User implements IsSerializable, UserInfoProvider, Serializable {
    */
   public void setUserEmail(String email) {
     this.email = email;
+  }
+
+  /**
+   * fetch the hashed password
+   *
+   * @return hashed password
+   */
+  public String getPassword() {
+    return password;
+  }
+
+
+  /**
+   * sets the hashed password.
+   *
+   * @param hashed password
+   */
+  public void setPassword(String hashedpassword) {
+    this.password = hashedpassword;
   }
 
   /**
@@ -141,6 +182,23 @@ public class User implements IsSerializable, UserInfoProvider, Serializable {
   }
 
   /**
+   * Returns the email notification frequency set by user.
+   *
+   * @return emailFrequency email frequency
+   */
+  @Override
+  public int getUserEmailFrequency() {
+    return emailFrequency;
+  }
+
+  /**
+   * Sets the user's email notification frequency
+   */
+  public void setUserEmailFrequency(int emailFrequency) {
+    this.emailFrequency = emailFrequency;
+  }
+
+  /**
    * Sets whether the user has accepted the terms of service.
    *
    * @param tos {@code true} if the user has accepted the terms of service,
@@ -160,12 +218,12 @@ public class User implements IsSerializable, UserInfoProvider, Serializable {
   public boolean getUserTosAccepted() {
     return tosAccepted;
   }
-  
+
   @Override
   public boolean getIsAdmin() {
     return isAdmin;
   }
-  
+
   /**
    * Sets whether the user has admin priviledges.
    *
@@ -250,7 +308,22 @@ public class User implements IsSerializable, UserInfoProvider, Serializable {
     this.sessionId = sessionId;
   }
 
+  @Override
+  public void setReadOnly(boolean value) {
+    isReadOnly = value;
+  }
+
+  public boolean isReadOnly() {
+    return isReadOnly;
+  }
+
   public User copy() {
-    return new User(id, email, name, link, tosAccepted, isAdmin, type, sessionId);
+    User retval = new User(id, email, name, link, emailFrequency, tosAccepted, isAdmin, type, sessionId);
+    // We set the isReadOnly flag in the copy in this fashion so we do not have to
+    // modify all the places in the source where we create a "User" object. There are
+    // only a few places where we assert or read the isReadOnly flag, so we want to
+    // limit the places where we have to have knowledge of it to just those places that care
+    retval.setReadOnly(isReadOnly);
+    return retval;
   }
 }

@@ -40,6 +40,12 @@ public interface UserInfoProvider {
   String getUserLink();
 
   /**
+   * Returns the email notification frequency set by user
+   * @return emailFrequency email frequency
+   */
+  int getUserEmailFrequency();
+
+  /**
    * Returns the user object.
    *
    * @return user object
@@ -70,6 +76,10 @@ public interface UserInfoProvider {
   int getType();
 
   String getSessionId();
+
+  void setReadOnly(boolean value);
+
+  boolean isReadOnly();
 
   void setSessionId(String SessionId);
 

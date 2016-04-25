@@ -89,6 +89,16 @@ public class LocalUser implements UserInfoProvider {
   }
 
   @Override
+  public int getUserEmailFrequency() throws UnsupportedOperationException {
+    try {
+      return user.get().getUserEmailFrequency();
+    } catch (NullPointerException e) {
+      // This should never happen, but just in case...
+      throw new UnsupportedOperationException("User field should have been initialized.");
+    }
+  }
+
+  @Override
   public boolean getUserTosAccepted() throws UnsupportedOperationException {
     try {
       return user.get().getUserTosAccepted();
@@ -116,6 +126,16 @@ public class LocalUser implements UserInfoProvider {
       // This should never happen, but just in case...
       throw new UnsupportedOperationException("User field should have been initialized.");
     }
+  }
+
+  @Override
+  public boolean isReadOnly() {
+    return user.get().isReadOnly();
+  }
+
+  @Override
+  public void setReadOnly(boolean value) {
+    user.get().setReadOnly(value);
   }
 
   @Override

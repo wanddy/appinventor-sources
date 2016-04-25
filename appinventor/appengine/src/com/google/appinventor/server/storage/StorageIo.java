@@ -9,10 +9,13 @@ package com.google.appinventor.server.storage;
 import com.google.appinventor.shared.rpc.BlocksTruncatedException;
 import com.google.appinventor.shared.rpc.Motd;
 import com.google.appinventor.shared.rpc.Nonce;
+import com.google.appinventor.shared.rpc.admin.AdminUser;
+import com.google.appinventor.shared.rpc.AdminInterfaceException;
 import com.google.appinventor.shared.rpc.project.Project;
 import com.google.appinventor.shared.rpc.project.ProjectSourceZip;
 import com.google.appinventor.shared.rpc.project.UserProject;
 import com.google.appinventor.shared.rpc.user.User;
+import com.google.appinventor.shared.rpc.user.SplashConfig;
 
 import java.io.IOException;
 import java.util.Date;
@@ -59,6 +62,16 @@ public interface StorageIo {
   User getUser(String userId, String email);
 
   /**
+   * Returns user data given user email address. If the user data for the given email
+   * doesn't already exist in the storage, it should be created. email
+   * is the email address currently associated with this user.
+   *
+   * @param user email address
+   * @return user data
+   */
+  User getUserFromEmail(String email);
+
+  /**
    * Sets the stored email address for user with id userId
    *
    */
@@ -81,6 +94,14 @@ public interface StorageIo {
   void setUserSessionId(String userId, String sessionId);
 
   /**
+   * Sets the user's hashed password.
+   *
+   * @param userId user id
+   * @param hashed password
+   */
+  void setUserPassword(String userId, String password);
+
+  /**
    * Returns a string with the user's settings.
    *
    * @param userId user id
@@ -94,7 +115,15 @@ public interface StorageIo {
    */
   void setUserName(String userId, String name);
 
-   /**
+  /**
+   * Returns a string with the user's name.
+   *
+   * @param userId user id
+   * @return name
+   */
+  String getUserName(String userId);
+
+  /**
    * Returns a string with the user's name.
    *
    * @param userId user id
@@ -108,13 +137,19 @@ public interface StorageIo {
    */
   void setUserLink(String userId, String link);
 
-   /**
-   * Returns a string with the user's name.
+  /**
+   * Returns the email notification frequency
    *
    * @param userId user id
-   * @return name
+   * @return emailFrequency email frequency
    */
-  String getUserName(String userId);
+  int getUserEmailFrequency(String userId);
+
+  /**
+   * Sets the stored email notification frequency for user with id userId
+   *
+   */
+  void setUserEmailFrequency(String userId, int emailFrequency);
 
   /**
    * Stores a string with the user's settings.
@@ -509,6 +544,7 @@ public interface StorageIo {
                                           boolean includeProjectHistory,
                                           boolean includeAndroidKeystore,
                                           @Nullable String zipName,
+                                          boolean includeYail,
                                           boolean fatalError) throws IOException;
 
   /**
@@ -557,5 +593,24 @@ public interface StorageIo {
 
   // Cleanup expired nonces
   void cleanupNonces();
+
+  // Check to see if user needs projects upgraded (moved to GCS)
+  // if so, add task to task queue
+  void checkUpgrade(String userId);
+
+  // Called by the task queue to actually upgrade user's projects
+  void doUpgrade(String userId);
+
+  // Retrieve the current Splash Screen Version
+  SplashConfig getSplashConfig();
+
+  StoredData.PWData createPWData(String email);
+  StoredData.PWData findPWData(String uid);
+  void cleanuppwdata();
+
+  // Routines for user admin interface
+
+  List<AdminUser> searchUsers(String partialEmail);
+  void storeUser(AdminUser user) throws AdminInterfaceException;
 
 }
