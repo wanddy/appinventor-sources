@@ -29,7 +29,7 @@
 <% if (error != null) {
 out.println("<center><font color=red><b>" + error + "</b></font></center><br/>");
    } %>
-<form method=POST action="/login">
+<form method=GET action="/login/local">
 <center><table>
 <tr><td>${emailAddressLabel}</td><td><input type=text name=email value="" size="35"></td></tr>
 <tr><td></td></td>

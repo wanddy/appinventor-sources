@@ -90,6 +90,9 @@ public class LoginServlet extends HttpServlet {
     String page = getPage(req);
 
     OdeAuthFilter.UserInfo userInfo = OdeAuthFilter.getUserInfo(req);
+	if (userInfo == null) {
+      userInfo = new OdeAuthFilter.UserInfo();
+    }
 
     String queryString = req.getQueryString();
     HashMap<String, String> params = getQueryMap(queryString);
@@ -197,7 +200,7 @@ public class LoginServlet extends HttpServlet {
       out.println("<html><head><title>Set Your Password</title>\n");
       out.println("</head>\n<body>\n");
       out.println("<h1>" + bundle.getString("setyourpassword") + "</h1>\n");
-      out.println("<form method=POST action=\"" + req.getRequestURI() + "\">");
+      out.println("<form method=GET action=\"/login/setpwok\">\n");
       out.println("<input type=password name=password value=\"\" size=\"35\"><br />\n");
       out.println("<p></p>");
       out.println("<input type=Submit value=\"" + bundle.getString("setpassword") + "\" style=\"font-size: 300%;\">\n");
@@ -217,11 +220,106 @@ public class LoginServlet extends HttpServlet {
       out.println("<body>\n");
       out.println("<h1>" + bundle.getString("requestlink") + "</h1>\n");
       out.println("<p>" + bundle.getString("requestinstructions") + "</p>\n");
-      out.println("<form method=POST action=\"" + req.getRequestURI() + "\">\n");
+      out.println("<form method=GET action=\"/login/sendlinkok\">\n");
       out.println(bundle.getString("enteremailaddress") + ":&nbsp;<input type=text name=email value=\"\" size=\"35\"><br />\n");
       out.println("<p></p>");
       out.println("<input type=submit value=\"" + bundle.getString("sendlink") + "\" style=\"font-size: 300%;\">\n");
       out.println("</form>\n");
+      return;
+    } else if (page.equals("local")) {
+      out = setCookieOutput(userInfo, resp);
+      String email = params.get("email");
+	  String password = params.get("password"); // We don't check it now
+      User user = storageIo.getUserFromEmail(email);
+      boolean validLogin = false;
+
+      String hash = user.getPassword();
+      if ((hash == null) || hash.equals("")) {
+        fail(req, resp, "No Password Set for User");
+        return;
+      }
+
+      try {
+        validLogin = PasswordHash.validatePassword(password, hash);
+      } catch (NoSuchAlgorithmException e) {
+      } catch (InvalidKeySpecException e) {
+      }
+
+      if (!validLogin) {
+        fail(req, resp, bundle.getString("invalidpassword"));
+        return;
+      }
+
+      if (DEBUG) {
+        LOG.info("userInfo = " + userInfo + " user = " + user);
+      }
+      userInfo.setUserId(user.getUserId());
+      userInfo.setIsAdmin(user.getIsAdmin());
+      String newCookie = userInfo.buildCookie(false);
+      if (DEBUG) {
+        LOG.info("newCookie = " + newCookie);
+      }
+      if (newCookie != null) {
+        Cookie cook = new Cookie("AppInventor", newCookie);
+        cook.setPath("/");
+        resp.addCookie(cook);
+      }
+
+      String uri = "/";
+      if (redirect != null && !redirect.equals("")) {
+        uri = redirect;
+      }
+      uri = new UriBuilder(uri)
+        .add("locale", locale)
+        .add("repo", repo)
+        .add("galleryId", galleryId).build();
+      resp.sendRedirect(uri);
+      return;
+    }else if(page.equals("sendlinkok")) {
+      String email = params.get("email");
+      if (email == null) {
+        fail(req, resp, "No Email Address Provided");
+        return;
+      }
+      // Send email here, for now we put it in the error string and redirect
+      PWData pwData = storageIo.createPWData(email);
+      if (pwData == null) {
+        fail(req, resp, "Internal Error");
+        return;
+      }
+      String link = trimPage(req) + pwData.id + "/setpw";
+      sendmail(email, link, locale);
+      resp.sendRedirect("/login/linksent/");
+      storageIo.cleanuppwdata();
+      return;
+    }else if (page.equals("setpwok")) {
+      if (userInfo == null || userInfo.getUserId().equals("")) {
+        fail(req, resp, "Session Timed Out");
+        return;
+      }
+      User user = storageIo.getUser(userInfo.getUserId());
+      String password = params.get("password");
+      if (password == null || password.equals("")) {
+        fail(req, resp, bundle.getString("nopassword"));
+        return;
+      }
+      String hashedPassword;
+      try {
+        hashedPassword = PasswordHash.createHash(password);
+      } catch (NoSuchAlgorithmException e) {
+        fail(req, resp, "System Error hashing password");
+        return;
+      } catch (InvalidKeySpecException e) {
+        fail(req, resp, "System Error hashing password");
+        return;
+      }
+
+      storageIo.setUserPassword(user.getUserId(),  hashedPassword);
+      String uri = new UriBuilder("/")
+        .add("locale", locale)
+        .add("repo", repo)
+        .add("galleryId", galleryId).build();
+      resp.sendRedirect(uri);   // Logged in, go to service
       return;
     }
 
@@ -255,8 +353,13 @@ public class LoginServlet extends HttpServlet {
 
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
     BufferedReader input = new BufferedReader(new InputStreamReader(req.getInputStream()));
-    String queryString = input.readLine();
-
+    //String queryString = input.readLine();
+	StringBuilder stringBuilder = new StringBuilder(1000);
+    java.util.Scanner scanner = new java.util.Scanner(req.getInputStream());
+    while (scanner.hasNextLine()) {
+        stringBuilder.append(scanner.nextLine());
+    }
+	String queryString = stringBuilder.toString();
     PrintWriter out;
 
     OdeAuthFilter.UserInfo userInfo = OdeAuthFilter.getUserInfo(req);
