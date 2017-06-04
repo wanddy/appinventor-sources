@@ -100,7 +100,7 @@ public class LoginServlet extends HttpServlet {
     // were not logged in.
     String locale = params.get("locale");
     if (locale == null) {
-      locale = "en";
+      locale = "zh-CN";
     }
     String repo = params.get("repo");
     String galleryId = params.get("galleryId");
